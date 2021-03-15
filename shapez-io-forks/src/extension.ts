@@ -1,13 +1,17 @@
 import * as vscode from "vscode";
-import { Forks } from "./forks";
+import { Tester } from "./tester";
 
 export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(
-        vscode.commands.registerCommand("shapez-io-forks.helloWorld", () => {
-            vscode.window.showInformationMessage(
-                "Hello World from shapez.io-forks!"
-            );
-            new Forks();
+        vscode.commands.registerCommand("shapez-io-forks.tester", () => {
+            vscode.window
+                .showInputBox({
+                    placeHolder: "Weblink",
+                    prompt: "Leave empty for 'http://localhost:3005'",
+                })
+                .then((url) => {
+                    new Tester(context.extensionUri, url);
+                });
         })
     );
 }

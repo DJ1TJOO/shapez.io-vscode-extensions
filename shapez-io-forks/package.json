@@ -10,14 +10,15 @@
         "Other"
     ],
     "activationEvents": [
-        "onCommand:shapez-io-forks.helloWorld"
+        "onCommand:shapez-io-forks.tester"
     ],
     "main": "./dist/extension.js",
     "contributes": {
         "commands": [
             {
-                "command": "shapez-io-forks.helloWorld",
-                "title": "Hello World"
+                "command": "shapez-io-forks.tester",
+                "title": "Shapez.io Tester",
+                "category": "shapez-io-forks"
             }
         ]
     },
