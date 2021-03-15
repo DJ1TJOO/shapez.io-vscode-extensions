@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import { Forks } from "./forks";
 import { Tester } from "./tester";
 
 export function activate(context: vscode.ExtensionContext) {
@@ -12,6 +13,11 @@ export function activate(context: vscode.ExtensionContext) {
                 .then((url) => {
                     new Tester(context.extensionUri, url);
                 });
+        })
+    );
+    context.subscriptions.push(
+        vscode.commands.registerCommand("shapez-io-forks.forks", () => {
+            new Forks(context.extensionUri, "https://shapez.io");
         })
     );
 }

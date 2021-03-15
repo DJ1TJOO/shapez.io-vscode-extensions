@@ -1,15 +1,65 @@
 import * as vscode from "vscode";
 import { getNonce } from "./getNonce";
+import * as GitHub from "octonode";
+import { gitUser, gitPass } from "./apiVariables";
 
-export class Tester {
+async function getForks(
+    repo: any,
+    page: number | undefined = undefined
+): Promise<any> {
+    const promise = new Promise((resolve: (value: any) => void, reject) => {
+        repo.forks(
+            { per_page: 100, page: page ? page : 0 },
+            (err: any, body: any[], header: any) => {
+                if (err) return reject({ err: err, data: null });
+                if (body.length > 99) {
+                    const p = new Promise(
+                        (resolve: (value: any) => void, reject) => {
+                            getForks(repo, page ? page + 1 : 1)
+                                .then(({ err, data }) => {
+                                    resolve({ err: null, data: data });
+                                })
+                                .catch(({ err, forks }) => {
+                                    reject({ err: err, data: null });
+                                });
+                        }
+                    );
+                    p.then((newForks) => {
+                        resolve({ err: null, data: [...body, ...newForks] });
+                    });
+                } else resolve({ err: null, data: body });
+            }
+        );
+    });
+    return promise;
+}
+
+export class Forks {
     _extensionUri;
     _view;
 
     constructor(_extensionUri: vscode.Uri, url: string | undefined) {
         this._extensionUri = _extensionUri;
+        //TODO: auth
+        GitHub.auth.config({
+            username: gitUser,
+            password: gitPass,
+        });
+
+        const client = GitHub.client();
+        const repo = client.repo("tobspr/shapez.io");
+
+        getForks(repo)
+            .then(({ err, forks }) => {
+                console.log(forks);
+            })
+            .catch(({ err, forks }) => {
+                console.log(err);
+            });
+
         const webviewView = vscode.window.createWebviewPanel(
-            "shapez-io-tester",
-            "Shapez.io Tester",
+            "shapez-io-forks",
+            "Shapez.io Forks",
             vscode.ViewColumn.One,
             {
                 retainContextWhenHidden: true,
@@ -59,11 +109,11 @@ export class Tester {
                 this._extensionUri,
                 "out",
                 "compiled",
-                "tester.js"
+                "forks.js"
             )
         );
         const styleUri = webview.asWebviewUri(
-            vscode.Uri.joinPath(this._extensionUri, "media", "tester.css")
+            vscode.Uri.joinPath(this._extensionUri, "media", "forks.css")
         );
 
         const nonce = getNonce();
