@@ -6,6 +6,10 @@
     "engines": {
         "vscode": "^1.54.0"
     },
+    "repository": {
+        "url": "https://github.com/DJ1TJOO/shapez.io-vscode-extensions",
+        "directory": "shapez-io-forks"
+    },
     "publisher": "DJ1TJOO",
     "categories": [
         "Other"
