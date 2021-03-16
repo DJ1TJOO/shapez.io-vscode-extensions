@@ -1,61 +1,15 @@
+import { StorageMananger } from "./storage/storage_manager";
 import * as vscode from "vscode";
 import { getNonce } from "./getNonce";
 import * as GitHub from "octonode";
-import { gitUser, gitPass } from "./apiVariables";
-
-async function getForks(
-    repo: any,
-    page: number | undefined = undefined
-): Promise<any> {
-    const promise = new Promise((resolve: (value: any) => void, reject) => {
-        repo.forks(
-            { per_page: 100, page: page ? page : 0 },
-            (err: any, body: any[], header: any) => {
-                if (err) return reject({ err: err, data: null });
-                if (body.length > 99) {
-                    const p = new Promise(
-                        (resolve: (value: any) => void, reject) => {
-                            getForks(repo, page ? page + 1 : 1)
-                                .then(({ err, data }) => {
-                                    resolve({ err: null, data: data });
-                                })
-                                .catch(({ err, forks }) => {
-                                    reject({ err: err, data: null });
-                                });
-                        }
-                    );
-                    p.then((newForks) => {
-                        resolve({ err: null, data: [...body, ...newForks] });
-                    });
-                } else resolve({ err: null, data: body });
-            }
-        );
-    });
-    return promise;
-}
+import { GlobalStateMananger } from "./storage/globalState_manager";
+import { auth } from "./auth";
 
 export class Forks {
     _extensionUri;
-    _view;
 
     constructor(_extensionUri: vscode.Uri, url: string | undefined) {
         this._extensionUri = _extensionUri;
-        //TODO: auth
-        GitHub.auth.config({
-            username: gitUser,
-            password: gitPass,
-        });
-
-        const client = GitHub.client();
-        const repo = client.repo("tobspr/shapez.io");
-
-        getForks(repo)
-            .then(({ err, forks }) => {
-                console.log(forks);
-            })
-            .catch(({ err, forks }) => {
-                console.log(err);
-            });
 
         const webviewView = vscode.window.createWebviewPanel(
             "shapez-io-forks",
@@ -66,8 +20,6 @@ export class Forks {
             }
         );
 
-        this._view = webviewView;
-
         webviewView.webview.options = {
             // Allow scripts in the webview
             enableScripts: true,
@@ -76,31 +28,67 @@ export class Forks {
         };
 
         webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
+        webviewView.webview.onDidReceiveMessage(this._onDidReceiveMessage);
+        this._getForks(webviewView);
+    }
 
-        if (url)
-            webviewView.webview.postMessage({
-                type: "url",
-                data: url,
-            });
-
-        webviewView.webview.onDidReceiveMessage(async (data) => {
-            switch (data.type) {
-                case "onInfo": {
-                    if (!data.value) {
-                        return;
-                    }
-                    vscode.window.showInformationMessage(data.value);
-                    break;
+    private _onDidReceiveMessage(data: any) {
+        switch (data.type) {
+            case "onInfo": {
+                if (!data.value) {
+                    return;
                 }
-                case "onError": {
-                    if (!data.value) {
-                        return;
-                    }
-                    vscode.window.showErrorMessage(data.value);
-                    break;
-                }
+                vscode.window.showInformationMessage(data.value);
+                break;
             }
-        });
+            case "onError": {
+                if (!data.value) {
+                    return;
+                }
+                vscode.window.showErrorMessage(data.value);
+                break;
+            }
+            case "onOpenUrl": {
+                if (!data.value) {
+                    return;
+                }
+                vscode.commands.executeCommand(
+                    "vscode.open",
+                    vscode.Uri.parse(data.value)
+                );
+                break;
+            }
+        }
+    }
+
+    private async _getForks(webviewView: vscode.WebviewPanel) {
+        let token: string | undefined = GlobalStateMananger.getToken();
+        if (!token)
+            if (!(token = await auth())) {
+                webviewView.dispose();
+                return vscode.window.showErrorMessage("GitHub token not found");
+            }
+
+        if (StorageMananger.getForks().length <= 0) {
+            const client = GitHub.client(token);
+            const repo = client.repo("tobspr/shapez.io");
+            StorageMananger.getForksFromRepo(repo)
+                .then(({ err, data }) => {
+                    StorageMananger.setForks(data);
+                    webviewView.webview.postMessage({
+                        type: "onForks",
+                        value: data,
+                    });
+                })
+                .catch(({ err, data }) => {
+                    vscode.window.showErrorMessage(err);
+                });
+        } else {
+            webviewView.webview.postMessage({
+                type: "onForks",
+                value: StorageMananger.getForks(),
+            });
+        }
     }
 
     private _getHtmlForWebview(webview: vscode.Webview) {
@@ -115,6 +103,9 @@ export class Forks {
         const styleUri = webview.asWebviewUri(
             vscode.Uri.joinPath(this._extensionUri, "media", "forks.css")
         );
+        const loadUri = webview.asWebviewUri(
+            vscode.Uri.joinPath(this._extensionUri, "media", "loading.svg")
+        );
 
         const nonce = getNonce();
 
@@ -126,6 +117,15 @@ export class Forks {
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>Document</title>
             <link rel="stylesheet" href="${styleUri}">
+            <style>
+                .prefab_LoadingTextWithAnim::after,
+                .prefab_LoadingTextWithAnimDelayed::after {
+                    background: url("${loadUri}") center center / contain no-repeat;
+                }
+            </style>
+            <script nonce="${nonce}">
+                const tsvscode = acquireVsCodeApi();
+            </script>
         </head>
         <body>
         <script nonce="${nonce}" src="${scriptUri}"></script>

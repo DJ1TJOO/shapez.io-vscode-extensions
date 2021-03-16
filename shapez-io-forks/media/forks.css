@@ -1,0 +1,82 @@
+@import url("https://fonts.googleapis.com/css2?family=Barlow&display=swap");
+.prefab_LoadingTextWithAnim,
+.prefab_LoadingTextWithAnimDelayed {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-transform: uppercase;
+    font-size: calc(16px * 1.4535);
+    line-height: calc(21px * 1.4535);
+    font-weight: 400;
+    font-family: "Barlow", sans-serif;
+    letter-spacing: 0.04em;
+    color: #deeaee;
+    opacity: 1;
+    z-index: 20;
+    color: #393747;
+    animation: autogen_anim_ukimwrqtf 1.5s ease-in-out infinite !important;
+}
+.prefab_LoadingTextWithAnim::after,
+.prefab_LoadingTextWithAnimDelayed::after {
+    content: " ";
+    width: calc(35px * 1.4535);
+    height: calc(35px * 1.4535);
+    display: inline-block;
+    vertical-align: middle;
+}
+.prefab_LoadingTextWithAnim::after,
+.prefab_LoadingTextWithAnimDelayed::after {
+    /* @load-async */
+    background: uiResource("loading.svg") center center / contain no-repeat;
+}
+@keyframes autogen_anim_ukimwrqtf {
+    50% {
+        transform: scale(1.2) rotate(160deg);
+    }
+}
+.prefab_LoadingTextWithAnimDelayed {
+    animation: autogen_anim_ukimwrqtg 0.6s ease-in-out !important;
+}
+@keyframes autogen_anim_ukimwrqtg {
+    0% {
+        opacity: 0;
+    }
+    50% {
+        opacity: 0;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+.gameLoadingOverlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+    pointer-events: all;
+    display: flex;
+    background: var(--vscode-editor-background);
+    flex-direction: column;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+.gameLoadingOverlay.visible {
+    opacity: 1;
+}
+.prefab_GameHint {
+    position: absolute;
+    bottom: calc(40px * 1.4535);
+    left: calc(20px * 1.4535);
+    right: calc(20px * 1.4535);
+    font-size: calc(13px * 1.4535);
+    line-height: calc(17px * 1.4535);
+    font-weight: 400;
+    font-family: "Barlow", sans-serif;
+    letter-spacing: 0.04em;
+    text-align: center;
+    color: #d8dae0;
+}
